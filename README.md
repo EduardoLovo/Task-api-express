@@ -9,16 +9,16 @@ O foco é **tratamento de erros completo**: toda falha, esperada ou não, devolv
 
 ## Stack
 
-| Item | Escolha |
-|---|---|
-| Runtime | Node.js ≥ 22.13 (usa o `node:sqlite` nativo) |
-| Framework | Express 5 |
-| Validação | Zod 4 (mensagens em português) |
-| Auth | JWT (HS256) + bcryptjs |
-| Banco | SQLite (arquivo local, sem servidor) |
-| Segurança | helmet, cors, express-rate-limit |
-| Docs | OpenAPI 3 + Swagger UI |
-| Testes | Jest + Supertest |
+| Item      | Escolha                                      |
+| --------- | -------------------------------------------- |
+| Runtime   | Node.js ≥ 22.13 (usa o `node:sqlite` nativo) |
+| Framework | Express 5                                    |
+| Validação | Zod 4 (mensagens em português)               |
+| Auth      | JWT (HS256) + bcryptjs                       |
+| Banco     | SQLite (arquivo local, sem servidor)         |
+| Segurança | helmet, cors, express-rate-limit             |
+| Docs      | OpenAPI 3 + Swagger UI                       |
+| Testes    | Jest + Supertest                             |
 
 ## Como rodar
 
@@ -35,6 +35,8 @@ npm run dev            # reinicia ao salvar
 ```bash
 npm test               # roda a suíte
 npm run test:coverage  # com relatório de cobertura
+npm run lint           # ESLint
+npm run format         # formata com o Prettier (format:check só verifica)
 ```
 
 ### Com Docker
@@ -51,17 +53,17 @@ A imagem roda com um usuário sem privilégios e um health check em `/health`. O
 
 ## Endpoints
 
-| Método | Rota | Auth | Descrição |
-|---|---|---|---|
-| GET | `/health` | — | Status da API e do banco |
-| POST | `/auth/register` | — | Cria conta e devolve token |
-| POST | `/auth/login` | — | Autentica e devolve token |
-| GET | `/auth/me` | ✔ | Dados do usuário logado |
-| GET | `/tasks` | ✔ | Lista tarefas (filtros e paginação) |
-| POST | `/tasks` | ✔ | Cria tarefa |
-| GET | `/tasks/:id` | ✔ | Busca tarefa |
-| PATCH | `/tasks/:id` | ✔ | Atualiza parcialmente |
-| DELETE | `/tasks/:id` | ✔ | Remove tarefa |
+| Método | Rota             | Auth | Descrição                           |
+| ------ | ---------------- | ---- | ----------------------------------- |
+| GET    | `/health`        | —    | Status da API e do banco            |
+| POST   | `/auth/register` | —    | Cria conta e devolve token          |
+| POST   | `/auth/login`    | —    | Autentica e devolve token           |
+| GET    | `/auth/me`       | ✔    | Dados do usuário logado             |
+| GET    | `/tasks`         | ✔    | Lista tarefas (filtros e paginação) |
+| POST   | `/tasks`         | ✔    | Cria tarefa                         |
+| GET    | `/tasks/:id`     | ✔    | Busca tarefa                        |
+| PATCH  | `/tasks/:id`     | ✔    | Atualiza parcialmente               |
+| DELETE | `/tasks/:id`     | ✔    | Remove tarefa                       |
 
 Rotas autenticadas exigem `Authorization: Bearer <token>`.
 
@@ -80,27 +82,27 @@ Rotas autenticadas exigem `Authorization: Bearer <token>`.
 }
 ```
 
-| Campo | Regras |
-|---|---|
-| `title` | obrigatório na criação, 1–120 caracteres |
-| `description` | opcional, até 1000 caracteres, aceita `null` |
-| `status` | `pending` (padrão), `in_progress`, `done` |
-| `priority` | `low`, `medium` (padrão), `high` |
-| `dueDate` | opcional, `YYYY-MM-DD` (data real), aceita `null` |
+| Campo         | Regras                                            |
+| ------------- | ------------------------------------------------- |
+| `title`       | obrigatório na criação, 1–120 caracteres          |
+| `description` | opcional, até 1000 caracteres, aceita `null`      |
+| `status`      | `pending` (padrão), `in_progress`, `done`         |
+| `priority`    | `low`, `medium` (padrão), `high`                  |
+| `dueDate`     | opcional, `YYYY-MM-DD` (data real), aceita `null` |
 
 Campos fora dessa lista são rejeitados.
 
 ### Query de `GET /tasks`
 
-| Parâmetro | Padrão | Valores |
-|---|---|---|
-| `status` | — | `pending`, `in_progress`, `done` |
-| `priority` | — | `low`, `medium`, `high` |
-| `search` | — | texto buscado em título e descrição |
-| `page` | `1` | inteiro ≥ 1 |
-| `limit` | `10` | 1–100 |
-| `sortBy` | `createdAt` | `createdAt`, `dueDate`, `priority`, `title` |
-| `order` | `desc` | `asc`, `desc` |
+| Parâmetro  | Padrão      | Valores                                     |
+| ---------- | ----------- | ------------------------------------------- |
+| `status`   | —           | `pending`, `in_progress`, `done`            |
+| `priority` | —           | `low`, `medium`, `high`                     |
+| `search`   | —           | texto buscado em título e descrição         |
+| `page`     | `1`         | inteiro ≥ 1                                 |
+| `limit`    | `10`        | 1–100                                       |
+| `sortBy`   | `createdAt` | `createdAt`, `dueDate`, `priority`, `title` |
+| `order`    | `desc`      | `asc`, `desc`                               |
 
 Resposta: `{ "data": [...], "meta": { "page", "limit", "total", "totalPages" } }`.
 
@@ -114,9 +116,7 @@ Resposta: `{ "data": [...], "meta": { "page", "limit", "total", "totalPages" } }
     "status": 400,
     "code": "VALIDATION_ERROR",
     "message": "Dados da requisição inválidos",
-    "details": [
-      { "location": "body", "field": "title", "message": "Título é obrigatório" }
-    ],
+    "details": [{ "location": "body", "field": "title", "message": "Título é obrigatório" }],
     "requestId": "b3f1c2d4-5e6f-7a8b-9c0d-1e2f3a4b5c6d"
   }
 }
@@ -128,28 +128,28 @@ Resposta: `{ "data": [...], "meta": { "page", "limit", "total", "totalPages" } }
 
 ### Códigos
 
-| Status | `code` | Quando |
-|---|---|---|
-| 400 | `VALIDATION_ERROR` | Body, query ou params inválidos (todos os problemas listados em `details`) |
-| 400 | `INVALID_JSON` | JSON malformado, com mais de 32 níveis de aninhamento, ou que não é objeto/array |
-| 400 | `BAD_REQUEST` | Requisição HTTP malformada |
-| 400 | `REQUEST_ABORTED` / `INVALID_CONTENT_LENGTH` | Corpo interrompido ou de tamanho incoerente |
-| 401 | `MISSING_TOKEN` | Sem cabeçalho `Authorization` |
-| 401 | `INVALID_AUTH_HEADER` | Cabeçalho fora do formato `Bearer <token>` |
-| 401 | `INVALID_TOKEN` | Token inválido, adulterado ou de usuário inexistente |
-| 401 | `TOKEN_EXPIRED` | Token expirado |
-| 401 | `INVALID_CREDENTIALS` | E-mail ou senha incorretos (mesma resposta para os dois casos) |
-| 403 | `FORBIDDEN` | Tarefa pertence a outro usuário |
-| 404 | `TASK_NOT_FOUND` | Tarefa não existe |
-| 404 | `ROUTE_NOT_FOUND` | Rota não existe |
-| 405 | `METHOD_NOT_ALLOWED` | Método não suportado (cabeçalho `Allow` informa os válidos) |
-| 409 | `EMAIL_ALREADY_EXISTS` | E-mail já cadastrado |
-| 413 | `PAYLOAD_TOO_LARGE` | Corpo acima de `BODY_LIMIT` |
-| 415 | `UNSUPPORTED_MEDIA_TYPE` | Corpo com Content-Type diferente de `application/json` |
-| 415 | `UNSUPPORTED_CHARSET` / `UNSUPPORTED_ENCODING` | Charset ou Content-Encoding não suportados |
-| 429 | `TOO_MANY_REQUESTS` | Rate limit excedido (cabeçalho `Retry-After`) |
-| 500 | `INTERNAL_ERROR` | Erro inesperado; detalhes só no log (e em `debug` quando `NODE_ENV=development`) |
-| 503 | `DATABASE_UNAVAILABLE` | Health check sem acesso ao banco |
+| Status | `code`                                         | Quando                                                                           |
+| ------ | ---------------------------------------------- | -------------------------------------------------------------------------------- |
+| 400    | `VALIDATION_ERROR`                             | Body, query ou params inválidos (todos os problemas listados em `details`)       |
+| 400    | `INVALID_JSON`                                 | JSON malformado, com mais de 32 níveis de aninhamento, ou que não é objeto/array |
+| 400    | `BAD_REQUEST`                                  | Requisição HTTP malformada                                                       |
+| 400    | `REQUEST_ABORTED` / `INVALID_CONTENT_LENGTH`   | Corpo interrompido ou de tamanho incoerente                                      |
+| 401    | `MISSING_TOKEN`                                | Sem cabeçalho `Authorization`                                                    |
+| 401    | `INVALID_AUTH_HEADER`                          | Cabeçalho fora do formato `Bearer <token>`                                       |
+| 401    | `INVALID_TOKEN`                                | Token inválido, adulterado ou de usuário inexistente                             |
+| 401    | `TOKEN_EXPIRED`                                | Token expirado                                                                   |
+| 401    | `INVALID_CREDENTIALS`                          | E-mail ou senha incorretos (mesma resposta para os dois casos)                   |
+| 403    | `FORBIDDEN`                                    | Tarefa pertence a outro usuário                                                  |
+| 404    | `TASK_NOT_FOUND`                               | Tarefa não existe                                                                |
+| 404    | `ROUTE_NOT_FOUND`                              | Rota não existe                                                                  |
+| 405    | `METHOD_NOT_ALLOWED`                           | Método não suportado (cabeçalho `Allow` informa os válidos)                      |
+| 409    | `EMAIL_ALREADY_EXISTS`                         | E-mail já cadastrado                                                             |
+| 413    | `PAYLOAD_TOO_LARGE`                            | Corpo acima de `BODY_LIMIT`                                                      |
+| 415    | `UNSUPPORTED_MEDIA_TYPE`                       | Corpo com Content-Type diferente de `application/json`                           |
+| 415    | `UNSUPPORTED_CHARSET` / `UNSUPPORTED_ENCODING` | Charset ou Content-Encoding não suportados                                       |
+| 429    | `TOO_MANY_REQUESTS`                            | Rate limit excedido (cabeçalho `Retry-After`)                                    |
+| 500    | `INTERNAL_ERROR`                               | Erro inesperado; detalhes só no log (e em `debug` quando `NODE_ENV=development`) |
+| 503    | `DATABASE_UNAVAILABLE`                         | Health check sem acesso ao banco                                                 |
 
 ### Fora das requisições
 

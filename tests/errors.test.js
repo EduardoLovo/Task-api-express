@@ -75,10 +75,7 @@ describe('Tratamento global de erros', () => {
   });
 
   it('400 para JSON que não é objeto nem array', async () => {
-    const res = await request(app)
-      .post('/auth/login')
-      .set('Content-Type', 'application/json')
-      .send('"texto"');
+    const res = await request(app).post('/auth/login').set('Content-Type', 'application/json').send('"texto"');
     expectError(res, 400, 'INVALID_JSON');
   });
 
@@ -90,10 +87,7 @@ describe('Tratamento global de erros', () => {
   });
 
   it('415 para Content-Type diferente de JSON', async () => {
-    const res = await request(app)
-      .post('/auth/login')
-      .set('Content-Type', 'text/plain')
-      .send('email=a@b.com');
+    const res = await request(app).post('/auth/login').set('Content-Type', 'text/plain').send('email=a@b.com');
     expectError(res, 415, 'UNSUPPORTED_MEDIA_TYPE');
   });
 

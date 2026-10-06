@@ -79,8 +79,7 @@ const openapi = {
   info: {
     title: 'Task API (Express)',
     version: '1.0.0',
-    description:
-      'API de gerenciamento de tarefas com autenticação JWT. Todos os erros seguem o formato `Error`.',
+    description: 'API de gerenciamento de tarefas com autenticação JWT. Todos os erros seguem o formato `Error`.',
   },
   servers: [{ url: '/' }],
   tags: [{ name: 'Health' }, { name: 'Auth' }, { name: 'Tasks' }],

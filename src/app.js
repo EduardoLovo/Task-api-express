@@ -57,7 +57,10 @@ function createApp({ db, config }) {
 
   app.use('/health', createHealthRouter({ db }));
 
-  app.route('/openapi.json').get((req, res) => res.json(openapi)).all(allowMethods('GET'));
+  app
+    .route('/openapi.json')
+    .get((req, res) => res.json(openapi))
+    .all(allowMethods('GET'));
   app.use('/docs', swaggerUi.serve, swaggerUi.setup(openapi));
 
   const authLimiter = createRateLimiter({

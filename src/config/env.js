@@ -4,9 +4,7 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
   DATABASE_PATH: z.string().min(1).default('./data/database.sqlite'),
-  JWT_SECRET: z
-    .string({ error: 'JWT_SECRET é obrigatório' })
-    .min(32, 'JWT_SECRET deve ter pelo menos 32 caracteres'),
+  JWT_SECRET: z.string({ error: 'JWT_SECRET é obrigatório' }).min(32, 'JWT_SECRET deve ter pelo menos 32 caracteres'),
   JWT_EXPIRES_IN: z
     .string()
     .regex(/^\d+[smhd]$/, 'JWT_EXPIRES_IN deve seguir o formato <número><s|m|h|d>, ex: 1h')
@@ -14,7 +12,11 @@ const envSchema = z.object({
   BCRYPT_ROUNDS: z.coerce.number().int().min(4).max(15).default(10),
   CORS_ORIGIN: z.string().min(1).default('*'),
   BODY_LIMIT: z.string().min(1).default('100kb'),
-  RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(15 * 60 * 1000),
+  RATE_LIMIT_WINDOW_MS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(15 * 60 * 1000),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
   AUTH_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(10),
 });

@@ -99,9 +99,7 @@ describe('Tasks', () => {
       const byStatus = await request(app).get('/tasks?status=done').set('Authorization', alice.auth);
       expect(byStatus.body.data.map((t) => t.title)).toEqual(['Comprar pão']);
 
-      const bySearch = await request(app)
-        .get('/tasks?search=comprar&priority=low')
-        .set('Authorization', alice.auth);
+      const bySearch = await request(app).get('/tasks?search=comprar&priority=low').set('Authorization', alice.auth);
       expect(bySearch.body.meta.total).toBe(2);
 
       const inDescription = await request(app).get('/tasks?search=livro').set('Authorization', alice.auth);
@@ -116,7 +114,11 @@ describe('Tasks', () => {
     });
 
     it('pagina e ordena', async () => {
-      for (const [title, priority] of [['b', 'low'], ['a', 'high'], ['c', 'medium']]) {
+      for (const [title, priority] of [
+        ['b', 'low'],
+        ['a', 'high'],
+        ['c', 'medium'],
+      ]) {
         await createTask(app, alice.auth, { title, priority });
       }
 
@@ -131,9 +133,7 @@ describe('Tasks', () => {
         .set('Authorization', alice.auth);
       expect(page2.body.data.map((t) => t.title)).toEqual(['c']);
 
-      const byPriority = await request(app)
-        .get('/tasks?sortBy=priority&order=desc')
-        .set('Authorization', alice.auth);
+      const byPriority = await request(app).get('/tasks?sortBy=priority&order=desc').set('Authorization', alice.auth);
       expect(byPriority.body.data.map((t) => t.priority)).toEqual(['high', 'medium', 'low']);
     });
 
@@ -143,9 +143,7 @@ describe('Tasks', () => {
       await createTask(app, alice.auth, { title: 'antes', dueDate: '2026-11-01' });
 
       for (const order of ['asc', 'desc']) {
-        const res = await request(app)
-          .get(`/tasks?sortBy=dueDate&order=${order}`)
-          .set('Authorization', alice.auth);
+        const res = await request(app).get(`/tasks?sortBy=dueDate&order=${order}`).set('Authorization', alice.auth);
         expect(res.body.data.at(-1).title).toBe('sem prazo');
       }
     });
@@ -225,18 +223,12 @@ describe('Tasks', () => {
 
     it('400 para título null', async () => {
       const task = await createTask(app, alice.auth);
-      const res = await request(app)
-        .patch(`/tasks/${task.id}`)
-        .set('Authorization', alice.auth)
-        .send({ title: null });
+      const res = await request(app).patch(`/tasks/${task.id}`).set('Authorization', alice.auth).send({ title: null });
       expectError(res, 400, 'VALIDATION_ERROR');
     });
 
     it('400 reúne erros de params e body juntos', async () => {
-      const res = await request(app)
-        .patch('/tasks/abc')
-        .set('Authorization', alice.auth)
-        .send({ status: 'x' });
+      const res = await request(app).patch('/tasks/abc').set('Authorization', alice.auth).send({ status: 'x' });
       expectError(res, 400, 'VALIDATION_ERROR');
       expect(res.body.error.details.map((d) => d.location)).toEqual(['params', 'body']);
     });
