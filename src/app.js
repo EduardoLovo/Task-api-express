@@ -19,6 +19,8 @@ const { createAuthRouter } = require('./modules/auth/auth.routes');
 const { createTaskRouter } = require('./modules/tasks/task.routes');
 const { createHealthRouter } = require('./modules/health/health.routes');
 const { openapi } = require('./docs/openapi');
+const { badRequest } = require('./errors/AppError');
+const { MAX_JSON_DEPTH, exceedsJsonDepth } = require('./lib/jsonDepth');
 
 function createApp({ db, config }) {
   const userRepository = createUserRepository(db);
@@ -41,7 +43,17 @@ function createApp({ db, config }) {
     }),
   );
   app.use(requireJson);
-  app.use(express.json({ limit: config.bodyLimit }));
+  app.use(
+    express.json({
+      limit: config.bodyLimit,
+      // Roda sobre os bytes (já descompactados) antes do JSON.parse.
+      verify: (req, res, buffer) => {
+        if (exceedsJsonDepth(buffer)) {
+          throw badRequest('INVALID_JSON', `JSON com aninhamento excessivo (máximo de ${MAX_JSON_DEPTH} níveis)`);
+        }
+      },
+    }),
+  );
 
   app.use('/health', createHealthRouter({ db }));
 

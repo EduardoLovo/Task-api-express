@@ -131,7 +131,7 @@ Resposta: `{ "data": [...], "meta": { "page", "limit", "total", "totalPages" } }
 | Status | `code` | Quando |
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | Body, query ou params inválidos (todos os problemas listados em `details`) |
-| 400 | `INVALID_JSON` | JSON malformado, ou que não é objeto/array |
+| 400 | `INVALID_JSON` | JSON malformado, com mais de 32 níveis de aninhamento, ou que não é objeto/array |
 | 400 | `BAD_REQUEST` | Requisição HTTP malformada |
 | 400 | `REQUEST_ABORTED` / `INVALID_CONTENT_LENGTH` | Corpo interrompido ou de tamanho incoerente |
 | 401 | `MISSING_TOKEN` | Sem cabeçalho `Authorization` |

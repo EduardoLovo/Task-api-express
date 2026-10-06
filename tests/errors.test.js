@@ -48,6 +48,32 @@ describe('Tratamento global de erros', () => {
     expectError(res, 400, 'INVALID_JSON');
   });
 
+  it.each([33, 50_000])('400 INVALID_JSON para JSON com %i níveis de aninhamento', async (levels) => {
+    const res = await request(app)
+      .post('/auth/login')
+      .set('Content-Type', 'application/json')
+      .send('['.repeat(levels) + ']'.repeat(levels));
+    expectError(res, 400, 'INVALID_JSON');
+    expect(res.body.error.message).toBe('JSON com aninhamento excessivo (máximo de 32 níveis)');
+  });
+
+  it('aceita até 32 níveis de aninhamento', async () => {
+    const res = await request(app)
+      .post('/auth/login')
+      .set('Content-Type', 'application/json')
+      .send('{"a":'.repeat(32) + '1' + '}'.repeat(32));
+    expectError(res, 400, 'VALIDATION_ERROR'); // chegou à validação: o JSON foi aceito
+  });
+
+  it('colchetes e aspas escapadas dentro de strings não contam', async () => {
+    const password = 'x\\"' + '[{'.repeat(40);
+    const res = await request(app)
+      .post('/auth/login')
+      .set('Content-Type', 'application/json')
+      .send(`{"email": "ninguem@example.com", "password": "${password}"}`);
+    expectError(res, 401, 'INVALID_CREDENTIALS');
+  });
+
   it('400 para JSON que não é objeto nem array', async () => {
     const res = await request(app)
       .post('/auth/login')
