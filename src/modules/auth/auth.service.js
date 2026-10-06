@@ -4,6 +4,10 @@ const { conflict, unauthorized } = require('../../errors/AppError');
 const { MAX_PASSWORD_BYTES } = require('./auth.schemas');
 
 const JWT_ALGORITHM = 'HS256';
+// Identifica quem emitiu o token. Cada API tem seu próprio banco de usuários:
+// sem isso, se as duas compartilhassem o JWT_SECRET, um token da outra API
+// autenticaria aqui o usuário que tivesse o mesmo id.
+const JWT_ISSUER = 'task-api-express';
 
 function toPublicUser(user) {
   return { id: user.id, name: user.name, email: user.email, createdAt: user.createdAt };
@@ -17,6 +21,7 @@ function createAuthService({ userRepository, config }) {
   function issueToken(user) {
     const token = jwt.sign({}, config.jwt.secret, {
       subject: String(user.id),
+      issuer: JWT_ISSUER,
       expiresIn: config.jwt.expiresIn,
       algorithm: JWT_ALGORITHM,
     });
@@ -50,7 +55,7 @@ function createAuthService({ userRepository, config }) {
     authenticate(token) {
       let payload;
       try {
-        payload = jwt.verify(token, config.jwt.secret, { algorithms: [JWT_ALGORITHM] });
+        payload = jwt.verify(token, config.jwt.secret, { algorithms: [JWT_ALGORITHM], issuer: JWT_ISSUER });
       } catch (err) {
         if (err.name === 'TokenExpiredError') {
           throw unauthorized('TOKEN_EXPIRED', 'Token expirado, faça login novamente');
@@ -68,4 +73,4 @@ function createAuthService({ userRepository, config }) {
   };
 }
 
-module.exports = { createAuthService };
+module.exports = { createAuthService, JWT_ISSUER };

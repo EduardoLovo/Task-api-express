@@ -35,6 +35,18 @@ npm test               # roda a suíte
 npm run test:coverage  # com relatório de cobertura
 ```
 
+### Com Docker
+
+```bash
+docker compose up --build -d   # usa o JWT_SECRET do .env
+```
+
+A imagem roda com um usuário sem privilégios e um health check em `/health`. O banco fica no volume
+`express-data`. Para subir junto com a versão Flask, use o repositório `task-api-compose`.
+
+> Cada API tem seu próprio banco de usuários, então os tokens **não** valem de uma para a outra: cada uma
+> marca o emissor no token (`iss`) e recusa tokens emitidos pela outra, mesmo com o mesmo `JWT_SECRET`.
+
 ## Endpoints
 
 | Método | Rota | Auth | Descrição |

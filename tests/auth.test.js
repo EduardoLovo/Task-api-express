@@ -2,6 +2,7 @@ const request = require('supertest');
 const jwt = require('jsonwebtoken');
 const { buildApp, registerUser, expectError, TEST_ENV } = require('./helpers');
 const { createUserRepository } = require('../src/modules/users/user.repository');
+const { JWT_ISSUER } = require('../src/modules/auth/auth.service');
 
 describe('Auth', () => {
   let app;
@@ -208,19 +209,30 @@ describe('Auth', () => {
       const user = await registerUser(app);
       const token = jwt.sign({ exp: Math.floor(Date.now() / 1000) - 60 }, TEST_ENV.JWT_SECRET, {
         subject: String(user.user.id),
+        issuer: JWT_ISSUER,
       });
       const res = await request(app).get('/auth/me').set('Authorization', `Bearer ${token}`);
       expectError(res, 401, 'TOKEN_EXPIRED');
     });
 
     it('401 INVALID_TOKEN quando o usuário do token não existe mais', async () => {
-      const token = jwt.sign({}, TEST_ENV.JWT_SECRET, { subject: '999999' });
+      const token = jwt.sign({}, TEST_ENV.JWT_SECRET, { subject: '999999', issuer: JWT_ISSUER });
+      const res = await request(app).get('/auth/me').set('Authorization', `Bearer ${token}`);
+      expectError(res, 401, 'INVALID_TOKEN');
+    });
+
+    it.each([
+      ['emitido pela API Flask', { issuer: 'task-api-flask' }],
+      ['sem emissor', {}],
+    ])('401 INVALID_TOKEN para token com o mesmo segredo, mas %s', async (_, issuerOption) => {
+      const user = await registerUser(app);
+      const token = jwt.sign({}, TEST_ENV.JWT_SECRET, { subject: String(user.user.id), ...issuerOption });
       const res = await request(app).get('/auth/me').set('Authorization', `Bearer ${token}`);
       expectError(res, 401, 'INVALID_TOKEN');
     });
 
     it('401 INVALID_TOKEN para subject não numérico', async () => {
-      const token = jwt.sign({}, TEST_ENV.JWT_SECRET, { subject: 'abc' });
+      const token = jwt.sign({}, TEST_ENV.JWT_SECRET, { subject: 'abc', issuer: JWT_ISSUER });
       const res = await request(app).get('/auth/me').set('Authorization', `Bearer ${token}`);
       expectError(res, 401, 'INVALID_TOKEN');
     });
