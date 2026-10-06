@@ -1,5 +1,7 @@
 # Task API — Express
 
+[![CI](https://github.com/EduardoLovo/Task-api-express/actions/workflows/ci.yml/badge.svg)](https://github.com/EduardoLovo/Task-api-express/actions/workflows/ci.yml)
+
 API REST de gerenciamento de tarefas com autenticação JWT, feita em **Node.js + Express 5**.
 O foco é **tratamento de erros completo**: toda falha, esperada ou não, devolve uma resposta JSON no mesmo formato.
 

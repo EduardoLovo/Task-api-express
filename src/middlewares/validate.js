@@ -40,6 +40,10 @@ function validate(schemas) {
         details.push({ location, field: null, message: 'Corpo da requisição é obrigatório' });
         continue;
       }
+      if (location === 'body' && (typeof req.body !== 'object' || Array.isArray(req.body))) {
+        details.push({ location, field: null, message: 'Corpo da requisição deve ser um objeto JSON' });
+        continue;
+      }
 
       const result = schema.safeParse(req[location]);
       if (result.success) {

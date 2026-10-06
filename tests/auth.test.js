@@ -95,6 +95,9 @@ describe('Auth', () => {
     it('400 quando o corpo é um array', async () => {
       const res = await request(app).post('/auth/register').send([1, 2]);
       expectError(res, 400, 'VALIDATION_ERROR');
+      expect(res.body.error.details).toEqual([
+        { location: 'body', field: null, message: 'Corpo da requisição deve ser um objeto JSON' },
+      ]);
     });
 
     it('409 para e-mail já cadastrado (sem diferenciar maiúsculas)', async () => {
