@@ -1,5 +1,7 @@
 const { z } = require('../../lib/zod');
 
+const MAX_PASSWORD_BYTES = 72;
+
 const email = z
   .string({ error: (iss) => (iss.input === undefined ? 'E-mail é obrigatório' : 'E-mail deve ser um texto') })
   .trim()
@@ -14,11 +16,14 @@ const registerSchema = z.strictObject({
     .min(2, 'Nome deve ter pelo menos 2 caracteres')
     .max(100, 'Nome deve ter no máximo 100 caracteres'),
   email,
-  // bcrypt só considera os primeiros 72 bytes da senha.
+  // bcrypt só considera os primeiros 72 bytes da senha (acentos ocupam 2 bytes em UTF-8).
   password: z
     .string({ error: (iss) => (iss.input === undefined ? 'Senha é obrigatória' : 'Senha deve ser um texto') })
     .min(8, 'Senha deve ter pelo menos 8 caracteres')
-    .max(72, 'Senha deve ter no máximo 72 caracteres'),
+    .refine(
+      (value) => Buffer.byteLength(value, 'utf8') <= MAX_PASSWORD_BYTES,
+      `Senha deve ter no máximo ${MAX_PASSWORD_BYTES} bytes`,
+    ),
 });
 
 const loginSchema = z.strictObject({
@@ -28,4 +33,4 @@ const loginSchema = z.strictObject({
     .min(1, 'Senha é obrigatória'),
 });
 
-module.exports = { registerSchema, loginSchema };
+module.exports = { registerSchema, loginSchema, MAX_PASSWORD_BYTES };

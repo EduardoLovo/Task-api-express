@@ -51,11 +51,26 @@ describe('Auth', () => {
       );
     });
 
-    it('400 para senha acima de 72 caracteres (limite do bcrypt)', async () => {
+    it('400 para senha acima de 72 bytes (limite do bcrypt)', async () => {
       const res = await request(app)
         .post('/auth/register')
         .send({ name: 'Ana', email: 'ana@example.com', password: 'a'.repeat(73) });
       expectError(res, 400, 'VALIDATION_ERROR');
+      expect(res.body.error.details[0].message).toBe('Senha deve ter no máximo 72 bytes');
+    });
+
+    it('conta bytes e não caracteres: 37 "á" = 74 bytes', async () => {
+      const res = await request(app)
+        .post('/auth/register')
+        .send({ name: 'Ana', email: 'ana@example.com', password: 'á'.repeat(37) });
+      expectError(res, 400, 'VALIDATION_ERROR');
+    });
+
+    it('aceita senha com exatamente 72 bytes', async () => {
+      const res = await request(app)
+        .post('/auth/register')
+        .send({ name: 'Ana', email: 'ana@example.com', password: 'á'.repeat(36) });
+      expect(res.status).toBe(201);
     });
 
     it('400 para tipos errados', async () => {
@@ -128,6 +143,15 @@ describe('Auth', () => {
         .send({ email: 'ninguem@example.com', password: 'qualquer-coisa' });
       expectError(unknownEmail, 401, 'INVALID_CREDENTIALS');
       expect(unknownEmail.body.error.message).toBe(wrongPassword.body.error.message);
+    });
+
+    it('401 para senha acima de 72 bytes, mesmo com o prefixo correto', async () => {
+      const password = 'p'.repeat(72);
+      const user = await registerUser(app, { password });
+      const res = await request(app)
+        .post('/auth/login')
+        .send({ email: user.user.email, password: `${password}extra` });
+      expectError(res, 401, 'INVALID_CREDENTIALS');
     });
 
     it('400 sem corpo', async () => {

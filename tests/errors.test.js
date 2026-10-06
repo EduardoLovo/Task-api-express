@@ -35,6 +35,11 @@ describe('Tratamento global de erros', () => {
     expect(res.headers.allow).toBe(allow);
   });
 
+  it('404 e 405 têm prioridade sobre a exigência de token', async () => {
+    expectError(await request(app).put('/tasks'), 405, 'METHOD_NOT_ALLOWED');
+    expectError(await request(app).get('/tasks/1/extra'), 404, 'ROUTE_NOT_FOUND');
+  });
+
   it('400 para JSON malformado', async () => {
     const res = await request(app)
       .post('/auth/login')

@@ -191,7 +191,11 @@ const openapi = {
             properties: {
               name: { type: 'string', minLength: 2, maxLength: 100 },
               email: { type: 'string', format: 'email' },
-              password: { type: 'string', minLength: 8, maxLength: 72 },
+              password: {
+                type: 'string',
+                minLength: 8,
+                description: 'No máximo 72 bytes em UTF-8 (caracteres acentuados ocupam 2 bytes)',
+              },
             },
           }),
         },

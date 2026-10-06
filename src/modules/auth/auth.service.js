@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { conflict, unauthorized } = require('../../errors/AppError');
+const { MAX_PASSWORD_BYTES } = require('./auth.schemas');
 
 const JWT_ALGORITHM = 'HS256';
 
@@ -34,8 +35,12 @@ function createAuthService({ userRepository, config }) {
 
     async login({ email, password }) {
       const user = userRepository.findByEmail(email);
-      const valid = await bcrypt.compare(password, user ? user.passwordHash : dummyHash);
-      if (!user || !valid) {
+      // Senha acima do limite nunca foi cadastrada; o bcrypt truncaria e poderia
+      // aceitar só pelo prefixo. Compara com o hash fictício para manter o tempo.
+      const tooLong = Buffer.byteLength(password, 'utf8') > MAX_PASSWORD_BYTES;
+      const hash = user && !tooLong ? user.passwordHash : dummyHash;
+      const valid = await bcrypt.compare(password, hash);
+      if (!user || tooLong || !valid) {
         throw unauthorized('INVALID_CREDENTIALS', 'E-mail ou senha inválidos');
       }
       return { user: toPublicUser(user), ...issueToken(user) };
