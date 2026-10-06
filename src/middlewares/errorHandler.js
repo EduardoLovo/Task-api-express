@@ -4,11 +4,19 @@ const logger = require('../lib/logger');
 // Erros lançados pelo express.json() (body-parser), identificados por err.type.
 const BODY_PARSER_ERRORS = {
   'entity.parse.failed': { status: 400, code: 'INVALID_JSON', message: 'JSON malformado no corpo da requisição' },
-  'entity.too.large': { status: 413, code: 'PAYLOAD_TOO_LARGE', message: 'Corpo da requisição excede o tamanho máximo permitido' },
+  'entity.too.large': {
+    status: 413,
+    code: 'PAYLOAD_TOO_LARGE',
+    message: 'Corpo da requisição excede o tamanho máximo permitido',
+  },
   'encoding.unsupported': { status: 415, code: 'UNSUPPORTED_ENCODING', message: 'Content-Encoding não suportado' },
   'charset.unsupported': { status: 415, code: 'UNSUPPORTED_CHARSET', message: 'Charset não suportado, use utf-8' },
   'request.aborted': { status: 400, code: 'REQUEST_ABORTED', message: 'Requisição interrompida pelo cliente' },
-  'request.size.invalid': { status: 400, code: 'INVALID_CONTENT_LENGTH', message: 'Content-Length não corresponde ao corpo enviado' },
+  'request.size.invalid': {
+    status: 400,
+    code: 'INVALID_CONTENT_LENGTH',
+    message: 'Content-Length não corresponde ao corpo enviado',
+  },
 };
 
 const STATUS_CODES = {
@@ -50,7 +58,7 @@ function normalizeError(err) {
 
 function createErrorHandler(config) {
   // O Express só reconhece um error handler pela assinatura com 4 parâmetros.
-  return function errorHandler(err, req, res, next) {
+  return function errorHandler(err, req, res, _next) {
     const appError = normalizeError(err);
 
     if (appError.status >= 500) {

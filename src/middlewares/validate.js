@@ -6,9 +6,7 @@ function formatIssues(issues, location) {
   const wrongType = new Set(
     issues.filter((issue) => issue.code === 'invalid_type').map((issue) => issue.path.join('.')),
   );
-  const relevant = issues.filter(
-    (issue) => issue.code === 'invalid_type' || !wrongType.has(issue.path.join('.')),
-  );
+  const relevant = issues.filter((issue) => issue.code === 'invalid_type' || !wrongType.has(issue.path.join('.')));
 
   return relevant.flatMap((issue) => {
     const base = issue.path.join('.');

@@ -1,0 +1,3 @@
+# Quebras de linha LF em todos os sistemas (o Prettier exige LF; o Git no Windows
+# converteria para CRLF ao baixar os arquivos).
+* text=auto eol=lf

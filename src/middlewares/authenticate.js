@@ -9,9 +9,7 @@ function createAuthenticate(authService) {
 
     const [scheme, token, ...rest] = header.trim().split(/\s+/);
     if (!/^Bearer$/i.test(scheme) || !token || rest.length > 0) {
-      return next(
-        unauthorized('INVALID_AUTH_HEADER', 'Cabeçalho Authorization deve ter o formato: Bearer <token>'),
-      );
+      return next(unauthorized('INVALID_AUTH_HEADER', 'Cabeçalho Authorization deve ter o formato: Bearer <token>'));
     }
 
     req.user = authService.authenticate(token);

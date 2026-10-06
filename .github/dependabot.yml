@@ -10,7 +10,7 @@ updates:
     schedule:
       interval: weekly
       day: monday
-      time: "09:00"
+      time: '09:00'
       timezone: America/Sao_Paulo
     # Espera alguns dias depois de uma versão sair: versões com defeito ou
     # comprometidas costumam ser retiradas nesse intervalo.
@@ -27,8 +27,8 @@ updates:
         dependency-type: development
         update-types: [minor, patch]
     commit-message:
-      prefix: "chore(deps)"
-      prefix-development: "chore(deps-dev)"
+      prefix: 'chore(deps)'
+      prefix-development: 'chore(deps-dev)'
 
   # Versões das actions usadas em .github/workflows
   - package-ecosystem: github-actions
@@ -36,15 +36,15 @@ updates:
     schedule:
       interval: weekly
       day: monday
-      time: "09:00"
+      time: '09:00'
       timezone: America/Sao_Paulo
     cooldown:
       default-days: 3
     groups:
       actions:
-        patterns: ["*"]
+        patterns: ['*']
     commit-message:
-      prefix: "chore(ci)"
+      prefix: 'chore(ci)'
 
   # Imagem base do Dockerfile (node:24-alpine)
   - package-ecosystem: docker
@@ -52,7 +52,7 @@ updates:
     schedule:
       interval: weekly
       day: monday
-      time: "09:00"
+      time: '09:00'
       timezone: America/Sao_Paulo
     cooldown:
       default-days: 3
@@ -60,6 +60,6 @@ updates:
       # Trocar a versão principal do Node (ex.: 24 → 26) é decisão manual:
       # versões ímpares não são LTS e a troca pede revisar o package.json (engines).
       - dependency-name: node
-        update-types: ["version-update:semver-major"]
+        update-types: ['version-update:semver-major']
     commit-message:
-      prefix: "chore(docker)"
+      prefix: 'chore(docker)'

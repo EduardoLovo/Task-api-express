@@ -87,9 +87,7 @@ describe('Auth', () => {
         .post('/auth/register')
         .send({ name: 'Ana', email: 'ana@example.com', password: 'senha-segura-123', role: 'admin' });
       expectError(res, 400, 'VALIDATION_ERROR');
-      expect(res.body.error.details).toEqual([
-        { location: 'body', field: 'role', message: 'Campo não permitido' },
-      ]);
+      expect(res.body.error.details).toEqual([{ location: 'body', field: 'role', message: 'Campo não permitido' }]);
     });
 
     it('400 quando o corpo é um array', async () => {
@@ -112,18 +110,14 @@ describe('Auth', () => {
       const repo = createUserRepository(db);
       const data = { name: 'A', email: 'race@example.com', passwordHash: 'hash' };
       repo.create(data);
-      expect(() => repo.create(data)).toThrow(
-        expect.objectContaining({ status: 409, code: 'EMAIL_ALREADY_EXISTS' }),
-      );
+      expect(() => repo.create(data)).toThrow(expect.objectContaining({ status: 409, code: 'EMAIL_ALREADY_EXISTS' }));
     });
   });
 
   describe('POST /auth/login', () => {
     it('autentica com credenciais corretas', async () => {
       const user = await registerUser(app);
-      const res = await request(app)
-        .post('/auth/login')
-        .send({ email: user.user.email, password: user.password });
+      const res = await request(app).post('/auth/login').send({ email: user.user.email, password: user.password });
       expect(res.status).toBe(200);
       expect(res.body.data.user.id).toBe(user.user.id);
       expect(res.body.data.accessToken).toEqual(expect.any(String));
@@ -131,9 +125,7 @@ describe('Auth', () => {
 
     it('401 para senha errada', async () => {
       const user = await registerUser(app);
-      const res = await request(app)
-        .post('/auth/login')
-        .send({ email: user.user.email, password: 'senha-errada-000' });
+      const res = await request(app).post('/auth/login').send({ email: user.user.email, password: 'senha-errada-000' });
       expectError(res, 401, 'INVALID_CREDENTIALS');
     });
 

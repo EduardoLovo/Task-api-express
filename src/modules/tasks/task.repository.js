@@ -10,8 +10,7 @@ const ORDER_BY = {
   createdAt: (dir) => `created_at ${dir}, id ${dir}`,
   // Tarefas sem prazo sempre ficam no final, independente da direção.
   dueDate: (dir) => `due_date IS NULL, due_date ${dir}, id ${dir}`,
-  priority: (dir) =>
-    `CASE priority WHEN 'low' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END ${dir}, id ${dir}`,
+  priority: (dir) => `CASE priority WHEN 'low' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END ${dir}, id ${dir}`,
   title: (dir) => `title COLLATE NOCASE ${dir}, id ${dir}`,
 };
 
@@ -79,16 +78,7 @@ function createTaskRepository(db) {
 
     create(userId, { title, description = null, status, priority, dueDate = null }) {
       const now = new Date().toISOString();
-      const { lastInsertRowid } = insertStmt.run(
-        userId,
-        title,
-        description,
-        status,
-        priority,
-        dueDate,
-        now,
-        now,
-      );
+      const { lastInsertRowid } = insertStmt.run(userId, title, description, status, priority, dueDate, now, now);
       return this.findById(Number(lastInsertRowid));
     },
 

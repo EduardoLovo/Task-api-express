@@ -1,12 +1,7 @@
 const { Router } = require('express');
 const { validate } = require('../../middlewares/validate');
 const { allowMethods } = require('../../middlewares/methodNotAllowed');
-const {
-  createTaskSchema,
-  updateTaskSchema,
-  listTasksQuerySchema,
-  taskIdParamsSchema,
-} = require('./task.schemas');
+const { createTaskSchema, updateTaskSchema, listTasksQuerySchema, taskIdParamsSchema } = require('./task.schemas');
 const { createTaskController } = require('./task.controller');
 
 function createTaskRouter({ taskService, authenticate }) {
