@@ -23,6 +23,9 @@ const { openapi } = require('./docs/openapi');
 const { badRequest } = require('./errors/AppError');
 const { MAX_JSON_DEPTH, exceedsJsonDepth } = require('./lib/jsonDepth');
 
+// Cabeçalhos que o JavaScript do navegador pode ler numa resposta de outra origem.
+const EXPOSED_HEADERS = ['X-Request-Id', 'Location', 'RateLimit', 'RateLimit-Policy', 'Retry-After'];
+
 function createApp({ db, config }) {
   const userRepository = createUserRepository(db);
   const taskRepository = createTaskRepository(db);
@@ -40,7 +43,7 @@ function createApp({ db, config }) {
   app.use(requestId);
   app.use(accessLog);
   app.use(helmet());
-  app.use(cors({ origin: config.corsOrigins, exposedHeaders: ['X-Request-Id', 'Location'] }));
+  app.use(cors({ origin: config.corsOrigins, exposedHeaders: EXPOSED_HEADERS }));
   app.use(
     createRateLimiter({
       windowMs: config.rateLimit.windowMs,

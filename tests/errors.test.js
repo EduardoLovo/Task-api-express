@@ -204,6 +204,27 @@ describe('Tratamento global de erros', () => {
       expect(res.body.error.message).toMatch(/autenticação/);
       limitedDb.close();
     });
+
+    // Mesmo formato na versão Flask (tests/test_errors.py); o pk é o sha256 do IP, igual nas duas.
+    const PK_1_1_1_1 = 'pk=:ZjE0MTIzODZhYThk:';
+
+    it('cabeçalhos RateLimit no formato draft-8, com o nome da política em segundos', async () => {
+      const { app: limited, db: limitedDb } = buildApp({ TRUST_PROXY: '1' });
+      const res = await hit(limited, '1.1.1.1');
+      expect(res.headers.ratelimit).toBe('"10000-in-900sec"; r=9999; t=900');
+      expect(res.headers['ratelimit-policy']).toBe(`"10000-in-900sec"; q=10000; w=900; ${PK_1_1_1_1}`);
+      limitedDb.close();
+    });
+
+    it('nas rotas de autenticação, lista as duas políticas (global e de login)', async () => {
+      const { app: limited, db: limitedDb } = buildApp({ TRUST_PROXY: '1', AUTH_RATE_LIMIT_MAX: '5' });
+      const res = await request(limited).post('/auth/login').set('X-Forwarded-For', '1.1.1.1').send({});
+      expect(res.headers.ratelimit).toBe('"10000-in-900sec"; r=9999; t=900, "5-in-900sec"; r=4; t=900');
+      expect(res.headers['ratelimit-policy']).toBe(
+        `"10000-in-900sec"; q=10000; w=900; ${PK_1_1_1_1}, "5-in-900sec"; q=5; w=900; ${PK_1_1_1_1}`,
+      );
+      limitedDb.close();
+    });
   });
 
   it('não expõe X-Powered-By e aplica cabeçalhos de segurança', async () => {

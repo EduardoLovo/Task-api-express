@@ -32,7 +32,9 @@ describe('CORS', () => {
       const res = await preflight(app, origin);
       expect(res.status).toBe(204);
       expect(res.headers['access-control-allow-origin']).toBe(origin);
-      expect(res.headers['access-control-expose-headers']).toBe('X-Request-Id,Location');
+      expect(res.headers['access-control-expose-headers']).toBe(
+        'X-Request-Id,Location,RateLimit,RateLimit-Policy,Retry-After',
+      );
       // A resposta muda conforme a origem: caches intermediários precisam saber disso.
       expect(res.headers.vary).toMatch(/Origin/);
     });
