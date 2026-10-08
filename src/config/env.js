@@ -1,4 +1,5 @@
 const { z } = require('../lib/zod');
+const { parseCorsOrigin } = require('./cors');
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
@@ -10,7 +11,15 @@ const envSchema = z.object({
     .regex(/^\d+[smhd]$/, 'JWT_EXPIRES_IN deve seguir o formato <número><s|m|h|d>, ex: 1h')
     .default('1h'),
   BCRYPT_ROUNDS: z.coerce.number().int().min(4).max(15).default(10),
-  CORS_ORIGIN: z.string().min(1).default('*'),
+  // "*" ou lista de origens separadas por vírgula (veja config/cors.js).
+  CORS_ORIGIN: z
+    .string()
+    .default('*')
+    .transform((value, ctx) => {
+      const { origins, problems } = parseCorsOrigin(value);
+      for (const message of problems ?? []) ctx.addIssue({ code: 'custom', message });
+      return origins ?? z.NEVER;
+    }),
   BODY_LIMIT: z.string().min(1).default('100kb'),
   RATE_LIMIT_WINDOW_MS: z.coerce
     .number()
@@ -46,7 +55,7 @@ function loadConfig(env = process.env) {
     databasePath: e.DATABASE_PATH,
     jwt: { secret: e.JWT_SECRET, expiresIn: e.JWT_EXPIRES_IN },
     bcryptRounds: e.BCRYPT_ROUNDS,
-    corsOrigin: e.CORS_ORIGIN,
+    corsOrigins: e.CORS_ORIGIN,
     bodyLimit: e.BODY_LIMIT,
     rateLimit: {
       windowMs: e.RATE_LIMIT_WINDOW_MS,

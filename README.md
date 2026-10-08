@@ -181,3 +181,8 @@ tests/                      # auth, tasks, erros/infra
 ## Variáveis de ambiente
 
 Veja [.env.example](.env.example). Só `JWT_SECRET` (mín. 32 caracteres) é obrigatória.
+
+`CORS_ORIGIN` aceita `*` (padrão, qualquer origem) ou uma lista separada por vírgulas. Cada item é uma origem exata
+ou tem `*` no lugar de um trecho do host, para URLs de preview: `https://front-*-conta.vercel.app` aceita
+`https://front-git-main-conta.vercel.app`, mas o `*` nunca casa um ponto. Item inválido (com caminho, barra no final
+ou `*` junto de outras origens) impede a API de subir.
