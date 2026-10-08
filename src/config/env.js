@@ -19,6 +19,8 @@ const envSchema = z.object({
     .default(15 * 60 * 1000),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
   AUTH_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(10),
+  // Quantos proxies (load balancers) ficam na frente da API. 0 = acesso direto.
+  TRUST_PROXY: z.coerce.number().int().min(0).max(10).default(0),
 });
 
 class ConfigError extends Error {
@@ -51,6 +53,7 @@ function loadConfig(env = process.env) {
       max: e.RATE_LIMIT_MAX,
       authMax: e.AUTH_RATE_LIMIT_MAX,
     },
+    trustProxy: e.TRUST_PROXY,
   };
 }
 

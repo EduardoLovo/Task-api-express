@@ -162,6 +162,30 @@ describe('Tratamento global de erros', () => {
   });
 
   describe('Rate limit', () => {
+    const hit = (app, forwardedFor) => request(app).get('/health').set('X-Forwarded-For', forwardedFor);
+
+    it('sem TRUST_PROXY, ignora o X-Forwarded-For (o cliente não escapa forjando o IP)', async () => {
+      const { app: limited, db: limitedDb } = buildApp({ RATE_LIMIT_MAX: '1' });
+      await hit(limited, '1.1.1.1');
+      expectError(await hit(limited, '2.2.2.2'), 429, 'TOO_MANY_REQUESTS');
+      limitedDb.close();
+    });
+
+    it('com TRUST_PROXY=1, cada cliente real tem o próprio limite', async () => {
+      const { app: limited, db: limitedDb } = buildApp({ RATE_LIMIT_MAX: '1', TRUST_PROXY: '1' });
+      expect((await hit(limited, '1.1.1.1')).status).toBe(200);
+      expect((await hit(limited, '2.2.2.2')).status).toBe(200);
+      expectError(await hit(limited, '1.1.1.1'), 429, 'TOO_MANY_REQUESTS');
+      limitedDb.close();
+    });
+
+    it('com TRUST_PROXY=1, só o último IP da lista conta (o resto pode ser forjado)', async () => {
+      const { app: limited, db: limitedDb } = buildApp({ RATE_LIMIT_MAX: '1', TRUST_PROXY: '1' });
+      await hit(limited, '9.9.9.9, 1.1.1.1');
+      expectError(await hit(limited, '8.8.8.8, 1.1.1.1'), 429, 'TOO_MANY_REQUESTS');
+      limitedDb.close();
+    });
+
     it('429 após exceder o limite global, com Retry-After', async () => {
       const { app: limited, db: limitedDb } = buildApp({ RATE_LIMIT_MAX: '2' });
       await request(limited).get('/health');
@@ -250,5 +274,7 @@ describe('Configuração', () => {
     expect(() => loadConfig({ ...TEST_ENV, PORT: 'abc' })).toThrow(/PORT/);
     expect(() => loadConfig({ ...TEST_ENV, JWT_EXPIRES_IN: 'uma hora' })).toThrow(/JWT_EXPIRES_IN/);
     expect(() => loadConfig({ ...TEST_ENV, NODE_ENV: 'staging' })).toThrow(/NODE_ENV/);
+    expect(() => loadConfig({ ...TEST_ENV, TRUST_PROXY: '-1' })).toThrow(/TRUST_PROXY/);
+    expect(() => loadConfig({ ...TEST_ENV, TRUST_PROXY: 'sim' })).toThrow(/TRUST_PROXY/);
   });
 });

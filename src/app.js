@@ -4,6 +4,7 @@ const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
 
 const { requestId } = require('./middlewares/requestId');
+const { accessLog } = require('./middlewares/accessLog');
 const { requireJson } = require('./middlewares/requireJson');
 const { createRateLimiter } = require('./middlewares/rateLimiter');
 const { createAuthenticate } = require('./middlewares/authenticate');
@@ -31,8 +32,13 @@ function createApp({ db, config }) {
 
   const app = express();
   app.disable('x-powered-by');
+  // Atrás de um proxy (ex.: Render), o IP real do cliente vem no X-Forwarded-For.
+  // Confiar no número exato de proxies: um a mais deixaria o cliente forjar o
+  // próprio IP e escapar do rate limit.
+  app.set('trust proxy', config.trustProxy);
 
   app.use(requestId);
+  app.use(accessLog);
   app.use(helmet());
   app.use(cors({ origin: config.corsOrigin, exposedHeaders: ['X-Request-Id', 'Location'] }));
   app.use(
