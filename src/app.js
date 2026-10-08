@@ -40,7 +40,7 @@ function createApp({ db, config }) {
   app.use(requestId);
   app.use(accessLog);
   app.use(helmet());
-  app.use(cors({ origin: config.corsOrigin, exposedHeaders: ['X-Request-Id', 'Location'] }));
+  app.use(cors({ origin: config.corsOrigins, exposedHeaders: ['X-Request-Id', 'Location'] }));
   app.use(
     createRateLimiter({
       windowMs: config.rateLimit.windowMs,
