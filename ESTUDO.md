@@ -1,7 +1,7 @@
 # Task API (Express) — Anotações de estudo
 
-> **Data:** 2026-10-06 · **Stack:** Node.js 24 (mínimo 22.13) · Express 5 · Zod 4 · JWT + bcryptjs · SQLite
-> (`node:sqlite`) · Jest + Supertest · ESLint + Prettier · Docker · GitHub Actions
+> **Data:** 2026-10-06 (atualizado em 2026-10-09) · **Stack:** Node.js 24 (mínimo 22.13) · Express 5 · Zod 4 ·
+> JWT + bcryptjs · SQLite (`node:sqlite`) · Jest + Supertest · ESLint + Prettier · Docker · GitHub Actions · Render
 
 ---
 
@@ -18,11 +18,28 @@ quebrado, rota inexistente, erro inesperado) devolve um JSON **sempre no mesmo f
 endpoints, códigos de erro e mensagens. O repositório `task-api-compose` sobe as duas juntas e prova, com um teste de
 contrato, que elas respondem igual.
 
+**Em produção:** https://task-api-express-2pva.onrender.com (documentação em `/docs`), no plano gratuito do Render.
+
 ---
 
 ## 2. Arquitetura
 
-Não tem frontend: é só o backend, consumido por qualquer cliente HTTP (Swagger UI, Postman, um app web...).
+É só o backend, consumido por qualquer cliente HTTP (Swagger UI, Postman...) e pelo front em Angular
+(`task-app-angular`), que tem um seletor para alternar entre esta API e a versão Flask.
+
+### Em produção (Render)
+
+```mermaid
+flowchart LR
+    U[Navegador / cliente] -->|HTTPS| CF[Cloudflare]
+    CF --> P1[Proxy interno<br/>do Render 10.x]
+    P1 --> P2[Proxy interno<br/>do Render 10.x]
+    P2 -->|HTTP| API[Container Docker<br/>node:24-alpine · porta 3000]
+    API --> DB[(SQLite no disco<br/>temporário do container)]
+```
+
+Cada salto acrescenta um IP no cabeçalho `X-Forwarded-For`. Por isso a API precisa saber quantos proxies atravessar
+(`TRUST_PROXY=3`) para achar o IP real de quem fez a requisição. Veja a Fase 16.
 
 ### Caminho de uma requisição
 
@@ -62,17 +79,18 @@ src/
 ├── server.js            # sobe o HTTP, trata sinais (SIGINT/SIGTERM) e erros de processo
 ├── app.js               # createApp({ db, config }): monta middlewares e rotas
 ├── config/env.js        # lê e valida as variáveis de ambiente com Zod
+├── config/cors.js       # interpreta o CORS_ORIGIN (lista de origens, com curinga)
 ├── db/database.js       # conexão node:sqlite + criação das tabelas
 ├── docs/openapi.js      # especificação OpenAPI 3
 ├── errors/AppError.js   # erro padrão da aplicação + atalhos (notFound, conflict...)
 ├── lib/                 # logger JSON, Zod em português, limite de aninhamento do JSON
-├── middlewares/         # requestId, requireJson, validate, authenticate, 404/405, rate limit, errorHandler
+├── middlewares/         # requestId, log de acesso, requireJson, validate, authenticate, 404/405, rate limit, errorHandler
 └── modules/
     ├── auth/            # cadastro, login, /me
     ├── tasks/           # CRUD de tarefas
     ├── users/           # acesso à tabela de usuários
     └── health/          # /health
-tests/                   # 115 testes (auth, tasks, erros/infra)
+tests/                   # 136 testes (auth, tasks, erros/infra, CORS)
 .github/                 # CI (workflows/ci.yml) e Dependabot (dependabot.yml)
 Dockerfile, docker-compose.yml, .dockerignore
 eslint.config.js, .prettierrc.json, .gitattributes
@@ -175,7 +193,8 @@ eslint.config.js, .prettierrc.json, .gitattributes
 
 ### Fase 10 — Testes (Jest + Supertest)
 
-- 115 testes: auth, tarefas e erros/infraestrutura. O Supertest faz requisições HTTP ao app sem abrir uma porta.
+- 115 testes nesta fase (hoje são 136, com os de CORS e de proxy): auth, tarefas e erros/infraestrutura. O
+  Supertest faz requisições HTTP ao app sem abrir uma porta.
 - `buildApp()` cria um app com banco em memória para cada teste. `BCRYPT_ROUNDS=4` deixa a suíte rápida.
 - `expectError()` confere que todo erro segue exatamente o formato padrão.
 
@@ -217,6 +236,57 @@ eslint.config.js, .prettierrc.json, .gitattributes
 - Job **Lint** no CI: ESLint, `prettier --check` e **actionlint** (verifica os workflows).
 - `.gitattributes` com `eol=lf`: veja a seção 7.
 
+### Fase 16 — Deploy no Render
+
+- **Objetivo:** colocar a API no ar de graça, usando o mesmo `Dockerfile` testado no computador e no CI.
+- **Escolha da hospedagem:** o Render foi escolhido por ser o único gratuito, sem cartão, que roda as duas APIs a
+  partir do Dockerfile e integra o deploy ao CI. Alternativas descartadas: Koyeb (só 1 serviço grátis), Google Cloud
+  Run e Oracle Cloud (exigem cartão; a Oracle ainda exige administrar um servidor), Fly.io e Railway (sem plano
+  gratuito contínuo).
+- **Como o Docker vai para produção:** com `runtime: docker`, a cada deploy o Render baixa o repositório, roda o
+  `Dockerfile`, guarda a imagem e sobe um container com ela. A imagem de produção sai da mesma receita testada no CI.
+- **O que foi feito:**
+  1. **`TRUST_PROXY`** (variável nova, padrão 0): `app.set('trust proxy', N)` diz ao Express quantos proxies
+     atravessar no `X-Forwarded-For` para achar o IP real do cliente, que o rate limit usa.
+  2. **Log de acesso** (`middlewares/accessLog.js`): uma linha JSON por requisição, com método, rota, status, tempo,
+     IP e `requestId`. O `/health` com sucesso fica de fora, porque o Render o chama a cada poucos segundos.
+  3. **Blueprint** (`render.yaml` no repositório `task-api-compose`): define as duas APIs como código. Plano `free`,
+     região `virginia` (não há região na América do Sul), `healthCheckPath: /health`, `PORT=3000` (igual ao
+     Dockerfile), um `JWT_SECRET` gerado pelo Render e `autoDeployTrigger: checksPass`, que só faz o deploy depois
+     que o CI passa.
+- **Medindo o `TRUST_PROXY`:** o Render não documenta quantos proxies existem. O valor foi descoberto na prática,
+  com requisições marcadas pelo `X-Request-Id` e um `X-Forwarded-For` forjado:
+  - com `1`, o log mostrava IPs internos `10.x` que **mudavam a cada requisição**, então o rate limit tratava todos
+    os visitantes como poucos "clientes";
+  - com `3` (Cloudflare + dois proxies internos), o log mostrou o IP real e ignorou o IP forjado.
+  - Atalho para conferir sem os logs: o cabeçalho `RateLimit` (`r=` requisições restantes) deve cair de 1 em 1 em
+    requisições seguidas, mesmo com IPs forjados.
+- **Limitações do plano free:** dorme após 15 min sem acesso e leva de 15 a 60 s para acordar; o disco é
+  temporário, então o SQLite começa vazio a cada deploy, reinício ou soneca. Para uma demonstração de portfólio,
+  isso foi considerado aceitável.
+
+### Fase 17 — CORS com lista de origens
+
+- **Objetivo:** liberar o front publicado (e as URLs de preview dele) sem abrir a API para qualquer site.
+- **O que foi feito:** `CORS_ORIGIN` continua aceitando `*`, mas agora também uma **lista separada por vírgula**,
+  em que cada item pode ter `*` no nome do host (ex.: `https://meu-front-*-minha-conta.vercel.app`). Fica em
+  `config/cors.js`, com testes próprios (`tests/cors.test.js`).
+- **Detalhes de segurança:** o `*` só casa letras, números e hífens, **nunca um ponto**. Assim,
+  `https://app-*.vercel.app` não aceita `https://app-x.site-de-outra-pessoa.vercel.app`. Um valor inválido impede a
+  API de subir, com o motivo de cada item.
+- Essa mudança foi feita fora desta conversa, provavelmente durante o trabalho no front. A descrição vem do commit
+  `7b70c72` e do código.
+
+### Fase 18 — Cabeçalhos de rate limit expostos e padronizados
+
+- **O que foi feito:** `RateLimit`, `RateLimit-Policy` e `Retry-After` entraram no `Access-Control-Expose-Headers`.
+  Sem isso, o JavaScript do navegador não consegue lê-los numa resposta de outra origem, e o front não poderia
+  mostrar quantas requisições restam.
+- O nome da política passou a ser em segundos (`"100-in-900sec"`), igual ao da versão Flask. O padrão do
+  `express-rate-limit` era `"100-in-15min"`, e essa diferença aparecia nos testes feitos depois do deploy.
+- Quando uma requisição passa por dois limites (global e autenticação), os dois aparecem no cabeçalho.
+- Também feita fora desta conversa (commit `91c2920`).
+
 ---
 
 ## 4. Ferramentas e tecnologias
@@ -233,12 +303,13 @@ eslint.config.js, .prettierrc.json, .gitattributes
 | **cors**               | Liberar acesso de outros domínios     | Configurável por `CORS_ORIGIN`              | Padrão do ecossistema Express                                      |
 | **express-rate-limit** | Limitar requisições por IP            | Global e para autenticação                  | Cabeçalhos `RateLimit` no padrão do IETF                           |
 | **swagger-ui-express** | Documentação interativa               | `/docs`                                     | Testar a API pelo navegador                                        |
-| **Jest + Supertest**   | Testes e requisições HTTP de teste    | 115 testes                                  | Jest é o padrão em Node; o Supertest dispensa subir o servidor     |
+| **Jest + Supertest**   | Testes e requisições HTTP de teste    | 136 testes                                  | Jest é o padrão em Node; o Supertest dispensa subir o servidor     |
 | **ESLint + Prettier**  | Lint (erros) e formatação (estilo)    | `npm run lint` e `npm run format:check`     | Um aponta bugs prováveis, o outro padroniza o estilo sem discussão |
 | **Docker / Compose**   | Empacotar e rodar em containers       | Imagem da API + volume do banco             | Roda igual em qualquer máquina                                     |
 | **GitHub Actions**     | CI: rodar verificações a cada push/PR | Lint, testes em 2 versões, imagem Docker    | Integrado ao GitHub, gratuito para repositório público             |
 | **Dependabot**         | PRs automáticos de atualização        | npm, actions e imagem Docker                | Mantém as dependências em dia com o CI validando                   |
 | **actionlint**         | Verificar workflows do GitHub Actions | Job Lint                                    | Pega erro de sintaxe e de shell antes do push                      |
+| **Render**             | Hospedagem de aplicações (PaaS)       | Roda o container a partir do Dockerfile     | Gratuito sem cartão, usa o Dockerfile e espera o CI passar         |
 
 ### Explicando as principais
 
@@ -254,6 +325,9 @@ eslint.config.js, .prettierrc.json, .gitattributes
   `expect(...)` confere o resultado.
 - **ESLint × Prettier:** o ESLint procura _erros_ (variável não usada, `==` em vez de `===`). O Prettier só cuida da
   _aparência_ (espaços, quebras de linha). Usar os dois juntos exige desligar as regras de estilo do ESLint.
+- **Render:** uma plataforma onde você não administra servidor. Você aponta o repositório, e ela constrói e roda a
+  aplicação. O **Blueprint** (`render.yaml`) descreve os serviços como código, versionado no Git, em vez de
+  configurá-los clicando no painel. Uma mudança feita só no painel é sobrescrita na próxima sincronização.
 
 ---
 
@@ -292,7 +366,24 @@ git switch -c feat/minha-mudanca
 git push -u origin feat/minha-mudanca   # depois: abrir PR, esperar o CI, fazer o merge
 ```
 
-Endereços: API em http://localhost:3000, documentação em http://localhost:3000/docs.
+Endereços: API em http://localhost:3000, documentação em http://localhost:3000/docs. Em produção:
+https://task-api-express-2pva.onrender.com.
+
+```bash
+# Conferir o TRUST_PROXY em produção: o "r=" do RateLimit deve cair de 1 em 1, mesmo com IP forjado
+for ip in "" 1.2.3.4 5.6.7.8; do
+  curl -s -D - -o /dev/null ${ip:+-H "X-Forwarded-For: $ip"} https://task-api-express-2pva.onrender.com/tasks \
+    | grep -i '^ratelimit:'
+done
+
+# Requisição marcada para achar no log do Render (a API reaproveita o X-Request-Id)
+curl -H "X-Request-Id: sonda-1" https://task-api-express-2pva.onrender.com/tasks
+
+# Seu IP público (IPv4), para comparar com o campo "ip" do log
+curl -4 https://ifconfig.me
+```
+
+O deploy acontece sozinho: merge na `main` → CI verde → o Render constrói a imagem e sobe a nova versão.
 
 ---
 
@@ -317,6 +408,17 @@ Endereços: API em http://localhost:3000, documentação em http://localhost:300
   declarada no `engines`.
 - **Cooldown do Dependabot:** esperar alguns dias antes de propor uma versão recém-lançada. Versões com defeito ou
   comprometidas costumam ser retiradas nesse intervalo.
+- **Proxy reverso e `X-Forwarded-For`:** em produção, a requisição passa por intermediários antes de chegar à API, e
+  cada um acrescenta o IP de quem o chamou no cabeçalho. O cliente também pode mandar esse cabeçalho preenchido com
+  o que quiser, então só os últimos N IPs (os adicionados pelos proxies de confiança) são confiáveis.
+- **Cold start:** o tempo para acordar um serviço que estava parado. No plano free do Render, de 15 a 60 s.
+- **Disco efêmero (temporário):** tudo que o container grava some quando ele é recriado. Dados que precisam durar
+  ficam num disco persistente ou num banco gerenciado.
+- **Infraestrutura como código:** descrever a hospedagem num arquivo versionado (`render.yaml`), revisado por PR
+  como qualquer código.
+- **Cabeçalhos expostos no CORS:** numa resposta de outra origem, o navegador só deixa o JavaScript ler alguns
+  cabeçalhos básicos. Os outros (`X-Request-Id`, `RateLimit`...) precisam estar listados no
+  `Access-Control-Expose-Headers`.
 
 ---
 
@@ -335,6 +437,11 @@ Endereços: API em http://localhost:3000, documentação em http://localhost:300
 | `prettier --check` passaria no CI e falharia no Windows          | O Git no Windows converte LF → CRLF ao baixar os arquivos                                                               | `.gitattributes` com `* text=auto eol=lf`                                                    |
 | ESLint: `next` não usado no error handler                        | O Express exige os 4 parâmetros, mesmo sem usar o último                                                                | Renomear para `_next` (`argsIgnorePattern: '^_'`)                                            |
 | Porta 3000 ocupada ao testar o Docker                            | O `npm run dev` estava rodando                                                                                          | Testes do Docker em outras portas (`EXPRESS_PORT=3100`)                                      |
+| `req.path` mostrava `/` no log de rotas como `/tasks`            | Dentro de um router montado, o Express tira o prefixo do caminho                                                        | Usar o `req.originalUrl` sem a query string                                                  |
+| O Render só listava repositórios de outras pessoas               | A conta do Render estava ligada a duas contas antigas do GitHub (de um bootcamp)                                        | Conectar a conta `EduardoLovo` com acesso só aos três repositórios                           |
+| Blueprint: "render.yaml not found"                               | O repositório escolhido foi o `task-api-flask`, e não o `task-api-compose`                                              | Conectar o repositório certo                                                                 |
+| Rate limit tratava todos os visitantes como poucos clientes      | `TRUST_PROXY=1`: a API via o IP de proxies internos do Render (`10.x`), e não o do cliente                              | Medir com requisições marcadas e fixar `TRUST_PROXY=3` no `render.yaml`                      |
+| Nome da política diferente do Flask (`15min` × `900sec`)         | O `express-rate-limit` arredonda o nome para a maior unidade inteira                                                    | Opção `identifier` com o nome em segundos                                                    |
 
 ---
 
@@ -352,6 +459,11 @@ Endereços: API em http://localhost:3000, documentação em http://localhost:300
 - Empacotar com Docker multi-stage, usuário sem privilégios e health check.
 - Montar um fluxo profissional: CI, `main` protegida, PRs, Dependabot, lint e formatação automáticos.
 - Diferenças entre Windows e Linux que aparecem na prática (quebras de linha, comportamento de bibliotecas).
+- Fazer deploy de um container: como a imagem testada no CI vira o serviço em produção, e as limitações reais de um
+  plano gratuito (soneca, disco temporário, cota de horas).
+- Que um valor não documentado (quantos proxies existem) se descobre medindo, com requisições marcadas e logs, e
+  não chutando: chutar alto deixaria o cliente forjar o IP; chutar baixo junta todos os visitantes num balde só.
+- Configurar CORS com segurança para várias origens, inclusive URLs de preview.
 
 ---
 
@@ -360,8 +472,9 @@ Endereços: API em http://localhost:3000, documentação em http://localhost:300
 **Melhorias possíveis**
 
 - Cobertura mínima de testes no CI (`coverageThreshold` do Jest).
-- Publicar a imagem no GitHub Container Registry e fazer o deploy (Render, Fly.io...).
-- Trocar o SQLite por PostgreSQL, com migrations.
+- Trocar o `CORS_ORIGIN` de `*` para o domínio do front quando ele estiver publicado.
+- Trocar o SQLite por PostgreSQL, com migrations, para os dados sobreviverem aos reinícios (exige um plano pago ou
+  um banco gerenciado: o Postgres gratuito do Render expira em 30 dias).
 - Rate limit compartilhado entre instâncias (Redis), já que hoje ele fica na memória de cada processo.
 - Refresh token e logout.
 - Frontend em Angular consumindo as duas APIs (em andamento: `task-app-angular`).
@@ -375,4 +488,7 @@ Endereços: API em http://localhost:3000, documentação em http://localhost:300
 - ESLint: https://eslint.org/ · Prettier: https://prettier.io/
 - GitHub Actions: https://docs.github.com/actions
 - Dependabot: https://docs.github.com/code-security/dependabot
+- Render (Docker): https://render.com/docs/docker · Blueprint: https://render.com/docs/blueprint-spec
+- Express atrás de proxies (`trust proxy`): https://expressjs.com/en/guide/behind-proxies.html
+- CORS (MDN): https://developer.mozilla.org/pt-BR/docs/Web/HTTP/Guides/CORS
 - OWASP API Security: https://owasp.org/API-Security/
